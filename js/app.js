@@ -101,7 +101,7 @@ function switchTab(tab) {
 
 function fabClick() {
   const actions = {
-    map:   () => openModal('day'),
+    map:   () => openPointModal(null),
     res:   () => openModal('res'),
     desp:  () => openModal('desp'),
     docs:  () => openModal('cl-group'),
@@ -112,7 +112,7 @@ function fabClick() {
 
 // ── MODAL ROUTER ──────────────────────────────────────────────
 const MODALS = {
-  'day':        ['📍 Dia do Roteiro',    extra => dayModalHtml(extra),       () => saveDayModal()],
+  // 'day' now handled by openPointModal in map.js
   'res':        ['🏨 Nova Reserva',      ()    => resModalHtml(),            () => saveResModal()],
   'desp':       ['💸 Nova Despesa',      ()    => despModalHtml(),           () => saveDespModal()],
   'cl-group':   ['✅ Novo Grupo',        ()    => clGroupModalHtml(),        () => saveClGroupModal()],
@@ -291,6 +291,24 @@ function refreshAll() {
   if (_tab === 'desp')  renderDespesas();
   if (_tab === 'docs')  renderDocs();
   if (_tab === 'notas') renderNotas();
+}
+
+
+// ── MAP HELPERS ───────────────────────────────────────────────
+function toggleSection(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('collapsed');
+  const hdr = el.previousElementSibling;
+  const chev = hdr?.querySelector('.side-chevron');
+  if (chev) chev.style.transform = el.classList.contains('collapsed') ? 'rotate(-90deg)' : '';
+}
+
+function fitAllPoints() {
+  const t = trip();
+  if (!t) return;
+  const pts = t.days.filter(d => d.lat && d.lng).map(d => [d.lat, d.lng]);
+  const m = getMap(); if (pts.length && m) m.fitBounds(L.latLngBounds(pts).pad(.25));
 }
 
 // ── SAVE ──────────────────────────────────────────────────────
