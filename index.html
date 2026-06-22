@@ -61,43 +61,35 @@ html,body{height:100%;font-family:var(--font);background:var(--snow);color:var(-
 .wlc-hero{
   position:relative;
   background:linear-gradient(135deg, #0a1628 0%, #0d2347 50%, #0a3060 100%);
-  padding:3rem 2rem 2rem;
-  text-align:center;
+  padding:1.2rem 1.5rem;
   overflow:hidden;
+  display:flex;align-items:center;gap:1rem;
 }
 .wlc-hero::before{
   content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse at 30% 50%, rgba(0,201,174,.18) 0%, transparent 60%),
-             radial-gradient(ellipse at 70% 30%, rgba(0,153,255,.15) 0%, transparent 55%);
+  background:radial-gradient(ellipse at 20% 50%, rgba(0,201,174,.2) 0%, transparent 60%),
+             radial-gradient(ellipse at 80% 30%, rgba(0,153,255,.15) 0%, transparent 55%);
 }
 .wlc-globe{
-  font-size:4rem;margin-bottom:1rem;
+  font-size:2.6rem;flex-shrink:0;
   animation:float 4s ease-in-out infinite;
   position:relative;z-index:1;
 }
-@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.wlc-hero-text{position:relative;z-index:1;flex:1;}
 .wlc-title{
-  font-size:2.2rem;font-weight:900;color:#fff;
+  font-size:1.55rem;font-weight:900;color:#fff;
   letter-spacing:-.02em;line-height:1.1;
-  position:relative;z-index:1;
 }
 .wlc-title span{
   background:linear-gradient(90deg,var(--accent),var(--accent2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
 .wlc-sub{
-  font-size:.9rem;color:rgba(255,255,255,.55);margin-top:.6rem;
-  position:relative;z-index:1;
+  font-size:.75rem;color:rgba(255,255,255,.5);margin-top:.2rem;
 }
-.wlc-dots{
-  display:flex;justify-content:center;gap:.4rem;margin-top:1.5rem;
-  position:relative;z-index:1;
-}
-.wlc-dot{
-  width:8px;height:8px;border-radius:50%;
-  background:rgba(255,255,255,.2);
-}
-.wlc-dot.on{background:var(--accent);width:24px;border-radius:4px;}
+.wlc-dots{display:none;}
+.wlc-dot{}
 
 .wlc-body{padding:1.5rem 1.25rem;}
 
@@ -482,8 +474,10 @@ html,body{height:100%;font-family:var(--font);background:var(--snow);color:var(-
   <div id="welcome">
     <div class="wlc-hero">
       <div class="wlc-globe">🌍</div>
-      <div class="wlc-title">Lulu <span>Adventure</span></div>
-      <div class="wlc-sub">Seu organizador de viagens</div>
+      <div class="wlc-hero-text">
+        <div class="wlc-title">Lulu <span>Adventure</span></div>
+        <div class="wlc-sub">Seu organizador de viagens</div>
+      </div>
     </div>
 
     <div class="wlc-body">
