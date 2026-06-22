@@ -6,7 +6,7 @@ let _geoTimer = null;
 function initMap() {
   if (_map) return;
   _map = L.map('lmap', { zoomControl: true }).setView([-20, -60], 4);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '© OpenStreetMap © CartoDB', maxZoom: 19
   }).addTo(_map);
 
