@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0f1923">
+<title>Lulu Adventure</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ── TOKENS ─────────────────────────────────────────────────── */
+:root {
+  --bg:       #0f1923;
+  --surface:  #1a2535;
+  --card:     #ffffff;
+  --border:   #e8edf2;
+  --snow:     #f4f7fa;
+  --ink:      #0f1923;
+  --body:     #3d4f63;
+  --muted:    #8fa3b8;
+  --accent:   #00b8a0;   /* teal — marca */
+  --blue:     #1a7fd4;
+  --amber:    #f0a500;
+  --red:      #e5432a;
+  --purple:   #7c5cbf;
+  --font:     'Segoe UI', system-ui, -apple-system, sans-serif;
+  --r:        12px;
+  --r-sm:     8px;
+  --shadow:   0 1px 8px rgba(15,25,35,.08);
+  --shadow-md:0 4px 20px rgba(15,25,35,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--font);background:var(--snow);color:var(--ink);overflow:hidden;}
+
+/* ── SHELL ──────────────────────────────────────────────────── */
+#shell{display:flex;flex-direction:column;height:100vh;}
+
+/* ── TOPBAR ─────────────────────────────────────────────────── */
+#topbar{
+  background:var(--bg);
+  color:#fff;
+  display:flex;align-items:center;gap:.75rem;
+  padding:0 1rem;
+  height:54px;flex-shrink:0;
+}
+#topbar .brand{display:flex;align-items:center;gap:.5rem;flex:1;min-width:0;}
+#topbar .brand-icon{font-size:1.25rem;}
+#topbar .brand-name{font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#topbar .brand-sub{font-size:.68rem;color:var(--muted);white-space:nowrap;}
+#trip-selector{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  color:#fff;border-radius:20px;padding:.3rem .85rem;
+  font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;
+}
+#trip-selector:hover{background:rgba(255,255,255,.14);}
+#btn-drive{
+  background:none;border:1.5px solid rgba(255,255,255,.2);color:#fff;
+  border-radius:20px;padding:.3rem .75rem;font-size:.72rem;
+  font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:.35rem;
+}
+#btn-drive.connected{border-color:var(--accent);color:var(--accent);}
+#btn-drive:hover{border-color:#fff;}
+
+/* ── TABS ────────────────────────────────────────────────────── */
+#tabs{
+  background:var(--bg);
+  border-top:1px solid rgba(255,255,255,.06);
+  display:flex;flex-shrink:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+#tabs::-webkit-scrollbar{display:none;}
+#tabs button{
+  flex:1;min-width:52px;
+  background:none;border:none;color:var(--muted);
+  padding:.6rem .3rem .45rem;
+  font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;
+  border-bottom:2.5px solid transparent;
+  transition:color .15s,border-color .15s;
+}
+#tabs button .ti{font-size:1.05rem;}
+#tabs button.on{color:#fff;border-bottom-color:var(--accent);}
+#tabs button:hover:not(.on){color:rgba(255,255,255,.7);}
+
+/* ── PANELS ─────────────────────────────────────────────────── */
+.pnl{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.pnl.on{display:flex;}
+#pnl-map.on{flex-direction:row;overflow:hidden;}
+
+/* ── MAP ────────────────────────────────────────────────────── */
+#map-side{
+  width:270px;min-width:200px;
+  background:#fff;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+#map-main{flex:1;position:relative;}
+#lmap{width:100%;height:100%;}
+.side-hdr{
+  padding:.7rem 1rem .5rem;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.side-hdr h2{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--body);}
+#days-list{flex:1;overflow-y:auto;padding:.35rem 0;}
+.day-row{
+  padding:.5rem 1rem;cursor:pointer;
+  border-left:3px solid transparent;
+  transition:background .1s,border-color .1s;
+}
+.day-row:hover{background:var(--snow);}
+.day-row.on{background:#eaf6f4;border-left-color:var(--accent);}
+.day-row .dr-date{font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+.day-row .dr-title{font-size:.85rem;font-weight:600;color:var(--ink);margin-top:1px;}
+.day-row .dr-loc{font-size:.72rem;color:var(--body);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── EMPTY TRIP ─────────────────────────────────────────────── */
+#no-trip{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1rem;padding:2rem;text-align:center;
+}
+#no-trip .nt-icon{font-size:3.5rem;}
+#no-trip h2{font-size:1.1rem;font-weight:700;color:var(--ink);}
+#no-trip p{font-size:.85rem;color:var(--body);line-height:1.5;max-width:260px;}
+
+/* ── SECTION TITLE ──────────────────────────────────────────── */
+.sec{
+  font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:.6rem 0 .3rem;
+  border-bottom:1px solid var(--border);margin-bottom:.5rem;
+}
+
+/* ── CARDS ──────────────────────────────────────────────────── */
+.card{
+  background:var(--card);border-radius:var(--r);
+  box-shadow:var(--shadow);overflow:hidden;
+  margin-bottom:.6rem;
+}
+.card-body{padding:.8rem 1rem;}
+
+/* ── RESERVAS ───────────────────────────────────────────────── */
+.res-card{
+  display:flex;gap:.75rem;align-items:flex-start;
+  padding:.85rem 1rem;position:relative;
+  border-left:4px solid var(--blue);
+}
+.res-card.hotel  {border-left-color:var(--blue);}
+.res-card.voo    {border-left-color:var(--accent);}
+.res-card.passe  {border-left-color:var(--amber);}
+.res-card.outro  {border-left-color:var(--muted);}
+.res-ico{font-size:1.35rem;margin-top:1px;}
+.res-info{flex:1;min-width:0;}
+.res-title{font-size:.9rem;font-weight:700;color:var(--ink);}
+.res-det{font-size:.76rem;color:var(--body);margin-top:2px;}
+.res-dates{font-size:.7rem;color:var(--muted);margin-top:3px;}
+.res-obs{font-size:.72rem;color:var(--body);margin-top:3px;font-style:italic;}
+.badge{
+  font-size:.6rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+}
+.badge-ok    {background:#d4f7ee;color:#0a7a5a;}
+.badge-pend  {background:#fff3d4;color:#8a6200;}
+.badge-cancel{background:#fde8e4;color:#9b2a10;}
+
+/* ── DESPESAS ───────────────────────────────────────────────── */
+.budget-wrap{
+  background:var(--card);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:.9rem 1rem;margin-bottom:.5rem;
+}
+.bud-top{display:flex;justify-content:space-between;margin-bottom:.5rem;}
+.bud-total{font-size:.82rem;font-weight:700;color:var(--ink);}
+.bud-used{font-size:.78rem;color:var(--body);}
+.bud-bar{background:var(--border);border-radius:99px;height:7px;overflow:hidden;}
+.bud-fill{height:100%;border-radius:99px;background:var(--accent);transition:width .4s;}
+.bud-fill.over{background:var(--red);}
+.bud-chips{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.65rem;}
+.chip{padding:2px 8px;border-radius:20px;font-size:.67rem;font-weight:700;}
+.desp-row{
+  background:var(--card);border-radius:var(--r-sm);
+  box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:.7rem;
+  padding:.65rem .9rem;margin-bottom:.45rem;
+}
+.desp-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.desp-desc{flex:1;min-width:0;}
+.desp-name{font-size:.86rem;font-weight:600;color:var(--ink);}
+.desp-meta{font-size:.7rem;color:var(--muted);}
+.desp-val{font-size:.92rem;font-weight:700;color:var(--ink);white-space:nowrap;}
+
+/* ── CHECKLIST ──────────────────────────────────────────────── */
+.cl-group{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:.65rem;overflow:hidden;}
+.cl-hdr{
+  padding:.7rem 1rem;display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface);color:#fff;cursor:pointer;user-select:none;
+}
+.cl-hdr-left{display:flex;align-items:center;gap:.5rem;}
+.cl-hdr span{font-size:.82rem;font-weight:700;}
+.cl-prog{font-size:.7rem;color:var(--muted);}
+.cl-items{padding:.2rem 0;}
+.cl-row{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.5rem 1rem;border-bottom:1px solid var(--snow);
+  transition:background .1s;
+}
+.cl-row:last-child{border-bottom:none;}
+.cl-row:hover{background:var(--snow);}
+.cl-row input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+.cl-row label{flex:1;font-size:.84rem;color:var(--ink);cursor:pointer;}
+.cl-row.done label{text-decoration:line-through;color:var(--muted);}
+.cl-add-row{padding:.4rem .9rem .6rem;}
+
+/* ── NOTAS ──────────────────────────────────────────────────── */
+.nota-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:.65rem;overflow:hidden;}
+.nota-hdr{
+  padding:.6rem 1rem;
+  background:linear-gradient(135deg,var(--surface),#2a3f5c);
+  color:#fff;display:flex;align-items:center;justify-content:space-between;
+}
+.nota-hdr-info .nd{font-size:.85rem;font-weight:700;}
+.nota-hdr-info .ndate{font-size:.68rem;color:var(--muted);margin-top:1px;}
+.nota-body{padding:.75rem 1rem;}
+.nota-txt{font-size:.84rem;color:var(--body);line-height:1.55;white-space:pre-wrap;}
+.nota-fotos{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.6rem;}
+.nf-img{width:62px;height:62px;object-fit:cover;border-radius:6px;cursor:pointer;}
+.nf-add{
+  width:62px;height:62px;border-radius:6px;
+  border:2px dashed var(--border);background:var(--snow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;color:var(--muted);cursor:pointer;
+}
+
+/* ── MODAL ──────────────────────────────────────────────────── */
+#modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(15,25,35,.6);z-index:500;
+  align-items:flex-end;justify-content:center;
+  padding:0;
+}
+#modal-bg.on{display:flex;}
+@media(min-width:520px){
+  #modal-bg{align-items:center;padding:1rem;}
+}
+.modal{
+  background:#fff;width:100%;max-width:460px;
+  border-radius:var(--r) var(--r) 0 0;
+  max-height:92vh;display:flex;flex-direction:column;overflow:hidden;
+}
+@media(min-width:520px){
+  .modal{border-radius:var(--r);max-height:88vh;}
+}
+.modal-hdr{
+  padding:1rem 1.2rem .75rem;
+  background:var(--bg);color:#fff;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.modal-hdr h3{font-size:.95rem;font-weight:700;}
+.modal-x{background:none;border:none;color:var(--muted);font-size:1.25rem;cursor:pointer;line-height:1;}
+.modal-x:hover{color:#fff;}
+.modal-body{padding:1rem 1.2rem;overflow-y:auto;flex:1;}
+.modal-foot{
+  padding:.75rem 1.2rem;border-top:1px solid var(--border);
+  display:flex;gap:.5rem;justify-content:flex-end;flex-shrink:0;
+}
+
+/* ── FORMS ──────────────────────────────────────────────────── */
+.fg{margin-bottom:.8rem;}
+.fg label{display:block;font-size:.67rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:.28rem;}
+.fg input,.fg select,.fg textarea{
+  width:100%;padding:.52rem .75rem;
+  border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-size:.87rem;color:var(--ink);font-family:inherit;
+  background:var(--snow);outline:none;
+  transition:border-color .15s,background .15s;
+}
+.fg input:focus,.fg select:focus,.fg textarea:focus{
+  border-color:var(--accent);background:#fff;
+}
+.fg textarea{resize:vertical;}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+
+/* ── BUTTONS ────────────────────────────────────────────────── */
+.btn{border:none;border-radius:var(--r-sm);font-family:inherit;cursor:pointer;font-weight:700;transition:opacity .15s;}
+.btn:active{opacity:.82;}
+.btn-primary{background:var(--accent);color:#fff;padding:.58rem 1.2rem;font-size:.86rem;}
+.btn-ghost{background:var(--snow);color:var(--body);padding:.55rem 1rem;font-size:.83rem;border:1.5px solid var(--border);}
+.btn-icon{
+  background:var(--accent);color:#fff;border:none;
+  width:26px;height:26px;border-radius:50%;font-size:1rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.btn-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:2px 4px;border-radius:4px;}
+.btn-del:hover{color:var(--red);background:#fde8e4;}
+
+/* ── FAB ────────────────────────────────────────────────────── */
+#fab{
+  position:fixed;bottom:1.2rem;right:1.2rem;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--accent);color:#fff;
+  border:none;font-size:1.5rem;cursor:pointer;
+  box-shadow:0 4px 18px rgba(0,184,160,.4);
+  display:flex;align-items:center;justify-content:center;
+  z-index:200;transition:transform .15s,box-shadow .15s;
+}
+#fab:active{transform:scale(.92);}
+#fab.hidden{display:none;}
+
+/* ── LIGHTBOX ───────────────────────────────────────────────── */
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:900;align-items:center;justify-content:center;}
+#lb.on{display:flex;}
+#lb img{max-width:96vw;max-height:90vh;border-radius:8px;}
+#lb-x{position:absolute;top:1rem;right:1rem;background:none;border:none;color:#fff;font-size:1.8rem;cursor:pointer;}
+
+/* ── TOAST ──────────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:5.5rem;left:50%;transform:translateX(-50%);
+  background:var(--bg);color:#fff;padding:.4rem 1rem;
+  border-radius:20px;font-size:.78rem;z-index:800;
+  box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;
+  opacity:0;transition:opacity .2s;
+}
+
+/* ── TRIP CARD (selector) ───────────────────────────────────── */
+.trip-opt{
+  display:flex;align-items:center;gap:.75rem;
+  padding:.75rem 1rem;border-radius:var(--r-sm);
+  border:1.5px solid var(--border);margin-bottom:.5rem;cursor:pointer;
+  transition:border-color .15s,background .15s;
+}
+.trip-opt:hover{border-color:var(--accent);background:#eaf6f4;}
+.trip-opt.on{border-color:var(--accent);background:#eaf6f4;}
+.trip-opt .to-icon{font-size:1.5rem;}
+.trip-opt .to-name{font-size:.88rem;font-weight:700;color:var(--ink);}
+.trip-opt .to-dates{font-size:.72rem;color:var(--muted);}
+
+.pad{padding:1rem;}
+.pad-x{padding:0 1rem;}
+.mt{margin-top:.75rem;}
+.gap{margin-bottom:.5rem;}
+</style>
+</head>
+<body>
+<div id="shell">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div class="brand">
+      <span class="brand-icon">🌍</span>
+      <div>
+        <div class="brand-name" id="trip-title">Lulu Adventure</div>
+        <div class="brand-sub" id="trip-sub">Nenhuma viagem selecionada</div>
+      </div>
+    </div>
+    <button id="trip-selector" onclick="openModal('trips')">✈️ Viagens</button>
+    <button id="btn-drive" onclick="driveAction()">
+      <span id="drive-ico">☁️</span> Drive
+    </button>
+  </div>
+
+  <!-- TABS -->
+  <nav id="tabs">
+    <button class="on" data-tab="map"> <span class="ti">🗺️</span>Mapa</button>
+    <button data-tab="res">            <span class="ti">🏨</span>Reservas</button>
+    <button data-tab="desp">           <span class="ti">💰</span>Despesas</button>
+    <button data-tab="docs">           <span class="ti">✅</span>Docs</button>
+    <button data-tab="notas">          <span class="ti">📝</span>Notas</button>
+  </nav>
+
+  <!-- MAP -->
+  <div id="pnl-map" class="pnl on">
+    <div id="map-side">
+      <div class="side-hdr">
+        <h2>Roteiro</h2>
+        <button class="btn-icon" onclick="openModal('day')">+</button>
+      </div>
+      <div id="days-list"></div>
+    </div>
+    <div id="map-main"><div id="lmap"></div></div>
+  </div>
+
+  <!-- RESERVAS -->
+  <div id="pnl-res" class="pnl">
+    <div class="pad">
+      <div class="sec">🏨 Hotéis & Estadias</div>
+      <div id="rl-hotel"></div>
+      <div class="sec mt">✈️ Voos & Transfers</div>
+      <div id="rl-voo"></div>
+      <div class="sec mt">🎫 Passeios & Parques</div>
+      <div id="rl-passe"></div>
+      <div class="sec mt">📋 Outros</div>
+      <div id="rl-outro"></div>
+      <div style="height:70px"></div>
+    </div>
+  </div>
+
+  <!-- DESPESAS -->
+  <div id="pnl-desp" class="pnl">
+    <div class="pad">
+      <div id="budget-wrap"></div>
+      <div class="sec mt">Lançamentos</div>
+      <div id="desp-list"></div>
+      <div style="height:70px"></div>
+    </div>
+  </div>
+
+  <!-- DOCS -->
+  <div id="pnl-docs" class="pnl">
+    <div class="pad">
+      <div id="cl-groups"></div>
+      <div style="height:70px"></div>
+    </div>
+  </div>
+
+  <!-- NOTAS -->
+  <div id="pnl-notas" class="pnl">
+    <div class="pad">
+      <div id="notas-list"></div>
+      <div style="height:70px"></div>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<!-- FAB -->
+<button id="fab" onclick="fabClick()">+</button>
+
+<!-- MODAL -->
+<div id="modal-bg">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="modal-title">—</h3>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="modal-ok">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lb" onclick="this.classList.remove('on')">
+  <button id="lb-x" onclick="document.getElementById('lb').classList.remove('on')">✕</button>
+  <img id="lb-img" src="" alt="">
+</div>
+
+<div id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/store.js"></script>
+<script src="js/map.js"></script>
+<script src="js/reservas.js"></script>
+<script src="js/despesas.js"></script>
+<script src="js/docs.js"></script>
+<script src="js/notas.js"></script>
+<script src="js/drive.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
